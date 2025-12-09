@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Gestión de Contactos</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f3f4f6;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 40px auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        }
+
+        h2 {
+            text-align: center;
+        }
+
+        input, button {
+            width: 100%;
+            padding: 10px;
+            margin: 6px 0;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+        }
+
+        button {
+            background: #2563eb;
+            color: white;
+            cursor: pointer;
+            border: none;
+        }
+
+        button:hover {
+            background: #1d4ed8;
+        }
+
+        .contact-card {
+            background: #f9fafb;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 5px solid #2563eb;
+        }
+
+        .delete-btn {
+            background: #ef4444;
+            border: none;
+            padding: 8px 12px;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .delete-btn:hover {
+            background: #dc2626;
+        }
+
+        .message {
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Gestión de Contactos</h2>
+
+    <div id="message"></div>
+
+    <input type="text" id="nombre" placeholder="Nombre del contacto">
+    <input type="text" id="telefono" placeholder="Teléfono">
+
+    <button onclick="crearContacto()">Agregar Contacto</button>
+
+    <h3 style="margin-top: 25px;">Lista de contactos</h3>
+    <div id="listaContactos"></div>
+</div>
+
+<script>
+    const API = "/api/contactos";
+
+    function mostrarMensaje(texto, tipo) {
+        const cont = document.getElementById("message");
+        cont.innerHTML = `<div class="message ${tipo}">${texto}</div>`;
+        setTimeout(() => cont.innerHTML = "", 3000);
+    }
+
+    async function cargarContactos() {
+        const res = await fetch(API);
+        const data = await res.json();
+
+        const lista = document.getElementById("listaContactos");
+        lista.innerHTML = "";
+
+        data.forEach(c => {
+            const card = document.createElement("div");
+            card.className = "contact-card";
+
+            card.innerHTML = `
+                <div>
+                    <strong>${c.nombre}</strong><br>
+                    <small>${c.telefono}</small>
+                </div>
+                <button class="delete-btn" onclick="eliminarContacto(${c.id})">Eliminar</button>
+            `;
+
+            lista.appendChild(card);
+        });
+    }
+
+    async function crearContacto() {
+        const nombre = document.getElementById("nombre").value.trim();
+        const telefono = document.getElementById("telefono").value.trim();
+
+        if (!nombre || !telefono) {
+            mostrarMensaje("Todos los campos son obligatorios", "error");
+            return;
+        }
+
+        const res = await fetch(API, {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({nombre, telefono})
+        });
+
+        if (res.ok) {
+            mostrarMensaje("Contacto agregado exitosamente", "success");
+            document.getElementById("nombre").value = "";
+            document.getElementById("telefono").value = "";
+            cargarContactos();
+        } else {
+            const err = await res.text();
+            mostrarMensaje(err, "error");
+        }
+    }
+
+    async function eliminarContacto(id) {
+        const res = await fetch(`${API}/${id}`, {method: "DELETE"});
+        const msg = await res.text();
+
+        if (res.ok) {
+            mostrarMensaje("Contacto eliminado", "success");
+            cargarContactos();
+        } else {
+            mostrarMensaje(msg, "error");
+        }
+    }
+
+    cargarContactos();
+</script>
+
+</body>
+</html>
